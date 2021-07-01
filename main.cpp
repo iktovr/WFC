@@ -8,6 +8,8 @@
 #include <string>
 #include <unistd.h>
 #include <ctime>
+#include <fstream>
+#include <unordered_map>
 
 using namespace std;
 
@@ -152,7 +154,7 @@ struct Domain {
 		return entropy;
 	}
 
-	void Print(string &tiles) {
+	void Print(vector<char> &tiles) {
 		for (size_t i = 0; i < Size(); ++i) {
 			if (mask[i]) {
 				cout << tiles[i];
@@ -169,28 +171,53 @@ Domain operator&(const Domain &lhs, const Domain &rhs) {
 	return res;
 }
 
-int dx[4] = {0, 1, 0, -1}; // вверх, вправо, вниз, влево
-int dy[4] = {-1, 0, 1, 0};
+const int dx[4] = {0, 1, 0, -1}; // вверх, вправо, вниз, влево
+const int dy[4] = {-1, 0, 1, 0};
 
-void Pars(vector<vector<int>>& sample, int count) {
-	//0 до count
-	vector<vector<Domain>> rules(count);
-	vector<double> probs(count);
+void ParseRules(vector<vector<int>> &sample, int count, vector<double> &probs, vector<vector<Domain>> &rules) {
+	probs.assign(count, 0);
+	rules.assign(count, vector<Domain>(4, Domain(count, false)));
 	int allprobs = sample.size() * sample[0].size();
-	for (int i = 0; i < sample.size(); ++i) {
-		for (int j = 0; j < sample[i].size(); ++j) {
+	for (size_t i = 0; i < sample.size(); ++i) {
+		for (size_t j = 0; j < sample[i].size(); ++j) {
 			probs[sample[i][j]] += 1;
-			
-
-
+			for (int d = 0; d < 4; ++d) {
+				int i2 = i + dy[d], j2 = j + dx[d];
+				if (i2 < sample.size() && i2 >= 0 && j2 < sample[0].size() && j2 >= 0) {					
+					rules[sample[i][j]][d].Set(sample[i2][j2]);
+				}
+			}
 		}
 	}
-
-
-	for (int i = 0; i < count; ++i) {
+	
+	for (size_t i = 0; i < count; ++i) {
 		probs[i] = probs[i] / allprobs;
 	}
+}
 
+void Parse(string filename, vector<char> &tiles, int &count, vector<double> &probs, vector<vector<Domain>> &rules) {
+	ifstream file(filename);
+	int n, m, i = 0, j = 0;
+	file >> n >> m;
+	unordered_map<char, int> tilesId;
+	vector<vector<int>> sample(n, vector<int>(m));
+	char c;
+	while (file >> c) {
+		auto iter = tilesId.find(c);
+		if (iter == tilesId.end()) {
+			tiles.push_back(c);
+			tilesId[c] = tiles.size() - 1;
+		}
+
+		sample[i][j] = tilesId[c];
+		++j;
+		if (j == m) {
+			j = 0;
+			++i;
+		}
+	}
+	count = tiles.size();
+	ParseRules(sample, count, probs, rules);
 }
 
 /*
@@ -201,25 +228,26 @@ x правила (vector<array<4, Domain>>)
 x основной цикл
 - enum для индексов направлений, чтобы не путаться (?)
 - симметрия
-- парсинг данных из ввода
+x парсинг данных из ввода
+- ввод
 - растянуть main по функциям (?)
 - обработка ошибок
 */
 
 int main() {
 	srand(time(nullptr));
-	string tiles = "SCL"; // 0 1 2
-    int n, m, count = tiles.size();
+
+	int count;
+	vector<char> tiles;
+	vector<double> probs;
+	vector<vector<Domain>> rules;
+	Parse("SCL.config", tiles, count, probs, rules);
+	
+	int n, m;
     cin >> n >> m;
-	vector<double> probs(count, 1.0 / count);
     vector<vector<Domain>> field(n, vector<Domain> (m, Domain(count)));
 	vector<vector<bool>> visited(n, vector<bool>(m, false));
-	vector<vector<Domain>> rules(count);
-	
-	rules[0] = {Domain(vector<bool>{1, 0, 0}), Domain(vector<bool>{1, 1, 0}), Domain(vector<bool>{1, 1, 0}), Domain(vector<bool>{1, 1, 0})}; //море
-	rules[1] = {Domain(vector<bool>{1, 0, 0}), Domain(vector<bool>{1, 1, 1}), Domain(vector<bool>{0, 0, 1}), Domain(vector<bool>{1, 1, 1})}; // пляж
-	rules[2] = {Domain(vector<bool>{0, 1, 1}), Domain(vector<bool>{0, 1, 1}), Domain(vector<bool>{0, 0, 1}), Domain(vector<bool>{0, 1, 1})}; // земля
-	
+
     int y = Randrange(n);
     int x = Randrange(m);
 	
@@ -238,7 +266,6 @@ int main() {
 			if (visited[i][j]) {
 				continue;
 			}
-			cout << i+1 << " " << j+1 << '\n';
 			visited[i][j] = true;
 			
 			double newEntropy = field[i][j].Entropy(probs);
@@ -261,8 +288,6 @@ int main() {
 						propagated = true;
 						mask |= rules[k][d];
 					}
-					mask.Print(tiles);
-					cout << '\n';
 
 					if (propagated) { // иначе пустая ячейка обнуляет соседей
 						if ((field[i2][j2] & mask) != field[i2][j2]) {
@@ -275,13 +300,13 @@ int main() {
 				}
 			}
 
-			for (vector<Domain> &row: field) {
-				for (Domain &domain: row) {
-					domain.Print(tiles);
-					cout << " ";
-				}
-				cout << '\n';
-			}
+			// for (vector<Domain> &row: field) {
+			// 	for (Domain &domain: row) {
+			// 		domain.Print(tiles);
+			// 		cout << " ";
+			// 	}
+			// 	cout << '\n';
+			// }
 			// sleep(1);
 		}
 
@@ -304,8 +329,9 @@ int main() {
 			}
 		}
 
-		cout << "---\n";
+		// cout << "---\n";
 	}
+
 	for (vector<Domain> &row: field) {
 		for (Domain &domain: row) {
 			if (domain.Number() == -1) {
