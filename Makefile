@@ -1,4 +1,4 @@
-CFLAGS=-std=c++17 -O2 -Wall -Wextra -pedantic -g
+CFLAGS=-std=c++17 -Wall -Wextra -pedantic -g
 
 all: main
 
