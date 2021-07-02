@@ -27,13 +27,14 @@ public:
 	Model(vector<vector<int>> &sample, int count) : count(count) {
 		probs.assign(count, 0);
 		rules.assign(count, vector<Domain>(4, Domain(count, false)));
-		int allprobs = sample.size() * sample[0].size();
-		for (size_t i = 0; i < sample.size(); ++i) {
-			for (size_t j = 0; j < sample[i].size(); ++j) {
+		int n = sample.size(), m = sample[0].size();
+		int allprobs = n * m;
+		for (int i = 0; i < n; ++i) {
+			for (int j = 0; j < m; ++j) {
 				probs[sample[i][j]] += 1;
 				for (int d = 0; d < 4; ++d) {
 					int i2 = i + dy[d], j2 = j + dx[d];
-					if (i2 < sample.size() && i2 >= 0 && j2 < sample[0].size() && j2 >= 0) {					
+					if (i2 < n && i2 >= 0 && j2 < m && j2 >= 0) {					
 						rules[sample[i][j]][d].Set(sample[i2][j2]);
 					}
 				}
@@ -43,7 +44,6 @@ public:
 		for (int i = 0; i < count; ++i) {
 			probs[i] = probs[i] / allprobs;
 		}
-
 	}
 
 	void Generate(int n, int m) {
@@ -119,15 +119,17 @@ public:
 				visit.pop();
 			}
 
-			entropy = Domain(count).Entropy(probs) + 1;
-			for (int i = 0; i < n; ++i) {
-				for (int j = 0; j < m; ++j) {
-					double newEntropy = field[i][j].Entropy(probs);
-					if (field[i][j].Count() > 1 && newEntropy < entropy) {
-						entropy = newEntropy;
-						y = i;
-						x = j;
-						changed = true;
+			if (!changed) {			
+				entropy = Domain(count).Entropy(probs) + 1;
+				for (int i = 0; i < n; ++i) {
+					for (int j = 0; j < m; ++j) {
+						double newEntropy = field[i][j].Entropy(probs);
+						if (field[i][j].Count() > 1 && newEntropy < entropy) {
+							entropy = newEntropy;
+							y = i;
+							x = j;
+							changed = true;
+						}
 					}
 				}
 			}
