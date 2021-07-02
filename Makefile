@@ -1,12 +1,10 @@
 CFLAGS=-std=c++17 -Wall -Wextra -pedantic -g
+HEADERS=model.hpp random.hpp domain.hpp
 
-all: main
+all: ascii
 
-main: main.cpp random.hpp domain.hpp
-	g++ $(CFLAGS) main.cpp -o solution.out
-
-run: main
-	./solution.out
+ascii: wfc_ascii.cpp $(HEADERS)
+	g++ $(CFLAGS) wfc_ascii.cpp -o ascii.out
 
 clean:
-	rm -rf solution.out
+	rm -rf *.out

@@ -19,35 +19,12 @@ const int dy[4] = {-1, 0, 1, 0};
 class Model {
 protected:
 	int count;
-	vector<char> tiles;
 	vector<double> probs;
 	vector<vector<Domain>> rules;
 	vector<vector<Domain>> field;
 	
 public:
-	Model(char *filename) {
-		ifstream file(filename);
-		int n, m, i = 0, j = 0;
-		file >> n >> m;
-		unordered_map<char, int> tilesId;
-		vector<vector<int>> sample(n, vector<int>(m));
-		char c;
-		while (file >> c) {
-			auto iter = tilesId.find(c);
-			if (iter == tilesId.end()) {
-				tiles.push_back(c);
-				tilesId[c] = tiles.size() - 1;
-			}
-
-			sample[i][j] = tilesId[c];
-			++j;
-			if (j == m) {
-				j = 0;
-				++i;
-			}
-		}
-
-		count = tiles.size();
+	Model(vector<vector<int>> &sample, int count) : count(count) {
 		probs.assign(count, 0);
 		rules.assign(count, vector<Domain>(4, Domain(count, false)));
 		int allprobs = sample.size() * sample[0].size();
@@ -159,19 +136,5 @@ public:
 		}
 	}
 
-	void Print() {
-		for (vector<Domain> &row: field) {
-			for (Domain &domain: row) {
-				if (domain.Number() == -1) {
-					cout << "_";
-				} else if (domain.Count() > 1) {
-					cout << "*";
-				} else {
-					cout << tiles[domain.Number()];
-				}
-			}
-			cout << '\n';
-		}
-		cout << '\n';
-	}
+	virtual void Show() = 0;
 };
