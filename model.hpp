@@ -6,6 +6,7 @@
 #include <fstream>
 #include <iostream>
 #include <queue>
+#include <stack>
 #include <utility>
 
 #include "domain.hpp"
@@ -16,12 +17,23 @@ using namespace std;
 const int dx[4] = {0, 1, 0, -1}; // вверх, вправо, вниз, влево
 const int dy[4] = {-1, 0, 1, 0};
 
+const int MAX_BACKTRACKING = 1e4;
+
 class Model {
 protected:
 	int count;
 	vector<double> probs;
 	vector<vector<Domain>> rules;
 	vector<vector<Domain>> field;
+	
+	struct Backup {
+		vector<vector<Domain>> oldField;
+		int i; // Старая
+		int j; // Позиция
+		int n; // Старый выбор
+
+		Backup(vector<vector<Domain>> &field, int i, int j) : oldField(field), i(i), j(j), n(-1) {}
+	};
 	
 public:
 	Model(vector<vector<int>> &sample, int count) : count(count) {
@@ -47,8 +59,10 @@ public:
 	}
 
 	void Generate(int n, int m) {
+		int countError = 0;
 		field.assign(n, vector<Domain> (m, Domain(count)));
 		vector<vector<bool>> visited(n, vector<bool>(m, false));
+		stack<Backup> backup;
 
 		int y = Randrange(n);
 		int x = Randrange(m);
@@ -57,7 +71,8 @@ public:
 		bool changed = true;
 		while (changed) {
 			changed = false;
-			field[y][x].Choice(probs);
+			backup.push({field, y, x});
+			backup.top().n = field[y][x].Choice(probs);
 			q.push({y, x});
 			visit.push({y, x});
 			double entropy = Domain(count).Entropy(probs) + 1;
@@ -78,6 +93,7 @@ public:
 					y = i;
 				}
 
+				bool backtracked = false;
 				for (int d = 0; d < 4; ++d) {
 					int i2 = i + dy[d], j2 = j + dx[d];
 					if (i2 < n && i2 >= 0 && j2 < m && j2 >= 0 && !visited[i2][j2]) {
@@ -92,14 +108,48 @@ public:
 							mask |= rules[k][d];
 						}
 
-						if (propagated) { // иначе пустая ячейка обнуляет соседей
-							if ((field[i2][j2] & mask) != field[i2][j2]) {
-								changed = true;
-								field[i2][j2] &= mask;
-								q.push({i2, j2});
-								visit.push({i2, j2});
+						if (propagated && ((field[i2][j2] & mask) != field[i2][j2])) { // иначе пустая ячейка обнуляет соседей
+							changed = true;
+							field[i2][j2] &= mask;
+							q.push({i2, j2});
+							visit.push({i2, j2});
+
+							while (field[i2][j2].Count() == 0) {
+								++countError;
+								backtracked = true;
+								while (!q.empty()) {
+									q.pop();
+								}
+
+								if (countError == MAX_BACKTRACKING) {
+									field.assign(n, vector<Domain>(m, Domain(count)));
+									visited.assign(n, vector<bool>(m, false));
+									x = Randrange(m);
+									y = Randrange(n);
+									while (!visit.empty()) {
+										visit.pop();
+									}
+									countError = 0;
+									while (!backup.empty()) {
+										backup.pop();
+									}
+									break;
+								}
+
+								if (backup.empty()) {
+									return;
+								}
+								field = backup.top().oldField;
+								j2 = x = backup.top().j;
+								i2 = y = backup.top().i;
+								field[y][x].Reset(backup.top().n);
+								backup.pop();
 							}
 						}
+					}
+
+					if (backtracked) {
+						break;
 					}
 				}
 
