@@ -60,7 +60,7 @@ public:
 		}
 	}
 
-	void Generate(int n, int m) {
+	bool Generate(int n, int m) {
 		int countError = 0;
 		field.assign(n, vector<Domain> (m, Domain(count)));
 		vector<vector<bool>> visited(n, vector<bool>(m, false));
@@ -139,7 +139,7 @@ public:
 								}
 
 								if (backup.empty()) {
-									return;
+									return false;
 								}
 								field = backup.top().oldField;
 								j2 = x = backup.top().j;
@@ -188,6 +188,7 @@ public:
 
 			// cout << "---\n";
 		}
+		return true;
 	}
 
 	virtual void Show() = 0;
