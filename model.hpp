@@ -34,6 +34,8 @@ protected:
 
 		Backup(vector<vector<Domain>> &field, int i, int j) : oldField(field), i(i), j(j), n(-1) {}
 	};
+
+	Model() {}
 	
 public:
 	Model(vector<vector<int>> &sample, int count) : count(count) {
