@@ -116,7 +116,7 @@ struct Domain {
 	double Entropy(const vector<double> &probs) {
 		double entropy = 0;
 		for (size_t i = 0; i < mask.size(); ++i) {
-			if (mask[i]) {
+			if (mask[i] && probs[i] > 0) {
 				entropy -= probs[i] * log(probs[i]);
 			}
 		}
