@@ -2,6 +2,7 @@
 #include <set>
 #include <string>
 #include <iomanip>
+#include <thread>
 
 #include "model.hpp"
 
@@ -105,19 +106,35 @@ public:
 			return;
 		}
 
-		for (size_t i = 0; i < field.size(); ++i) {
-			for (size_t j = 0; j < field[0].size(); ++j) {
-				int tile = field[i][j].Number();
-				if (tile != -1) {
-					Result.setPixel(j, i, Source.getPixel(tiles[tile].first, tiles[tile].second));
+		for (int i = 0; i < static_cast<int>(field.size()); ++i) {
+			for (int j = 0; j < static_cast<int>(field[0].size()); ++j) {
+				int r = 0, g = 0, b = 0, contribs = 0;
+
+				for (int x = 0; x < N; ++x) {
+					if (j - x < 0) continue;
+
+					for (int y = 0; y < N; ++y) {
+						if (i - y < 0) continue;
+
+						for (int t = 0; t < count; ++t) {
+							if (!field[i - y][j - x][t]) continue;
+
+							sf::Color pixel = Source.getPixel(tiles[t].first + x, tiles[t].second + y);
+							r += pixel.r;
+							g += pixel.g;
+							b += pixel.b;
+							++contribs;
+						}
+					}
 				}
+
+				Result.setPixel(j, i, sf::Color(r / contribs, g / contribs, b / contribs));
 			}
 		}
 	}
 };
 
 int main(int, char *argv[]) {
-	srand(time(nullptr));
 	sf::Image image;
 	if (!image.loadFromFile(string(argv[1]))) {
 		cout << "Error" << endl;
@@ -128,7 +145,6 @@ int main(int, char *argv[]) {
 	cin >> N >> n >> m;
 
 	OverlappingModel model(image, N);
-	bool generated = model.Generate(n, m);
 
 	int scale = 10;
 	sf::Texture texture;
@@ -136,40 +152,28 @@ int main(int, char *argv[]) {
 	sf::Sprite sprite(texture);
 	sprite.setScale(scale, scale);
 
-	model.Show();
-	texture.update(model.Result);
-	bool regenerated = false;
+	bool regenerated = true;
 
 	sf::RenderWindow window(sf::VideoMode(m * scale, n * scale), "wfc");
-	sf::Clock timer;
-	int fps = 60;
+	window.setFramerateLimit(60);
 	while (window.isOpen()) {
-		regenerated = false;
 		sf::Event event;
 		while (window.pollEvent(event)) {
 			if (event.type == sf::Event::Closed) {
 				window.close();
-			} else if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::G) {
-				generated = model.Generate(n, m);
-				regenerated = true;
+			} else if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::G && regenerated) {
+				regenerated = false;
+				thread generator([&regenerated, &model, n, m](){ model.Generate(n, m); regenerated = true;});
+				generator.detach();
 			}
 		}
  
-		window.clear(sf::Color::Red);
-		if (generated) {
-			if (regenerated) {
-				model.Show();
-				texture.update(model.Result);
-			}
-			window.draw(sprite);
+		window.clear();
+		if (model.Result.getSize().x != 0) {
+			model.Show();
+			texture.update(model.Result);
 		}
+		window.draw(sprite);
 		window.display();
-
-		int frameDuration = timer.getElapsedTime().asMilliseconds();
-		int sleepTime = int(1000.f / fps) - frameDuration;
-		if (sleepTime > 0) {
-			sf::sleep(sf::milliseconds(sleepTime));
-		}
-		timer.restart();
 	}
 }

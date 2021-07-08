@@ -6,6 +6,7 @@
 #include <SFML/Graphics.hpp>
 #include <filesystem>
 #include <cstring>
+#include <thread>
 
 #include "model.hpp"
 
@@ -23,12 +24,18 @@ public:
 	void Show() override {}
 
 	void Show(sf::RenderWindow &window) {
+		sf::Sprite sprite;
 		for (size_t i = 0; i < field.size(); ++i) {
 			for (size_t j = 0; j < field[i].size(); ++j) {
-				if (field[i][j].Count() > 0) {
-					sf::Sprite sprite(tiles[field[i][j].Number()]);
+				int c = field[i][j].Count();
+				if (c > 0) {
+					sprite.setColor(sf::Color(255, 255, 255, c == 1 ? 255 : 128));
 					sprite.setPosition(j * tilesSize, i * tilesSize);
-					window.draw(sprite);
+					for (int t = 0; t < count; ++t) {
+						if (!field[i][j][t]) continue;
+						sprite.setTexture(tiles[t]);
+						window.draw(sprite);
+					} 
 				}
 			}
 		}
@@ -81,7 +88,7 @@ vector<vector<int>> ParseImage(sf::Image image, int tilesSize, vector<sf::Textur
 
 	auto [width, height] = image.getSize();
 
-	vector<vector<int>> sample(width / tilesSize, vector<int>(height / tilesSize));
+	vector<vector<int>> sample(height / tilesSize, vector<int>(width / tilesSize));
 
 	int k = 0;
 
@@ -109,9 +116,7 @@ vector<vector<int>> ParseImage(sf::Image image, int tilesSize, vector<sf::Textur
 
 
 int main(int argc, char *argv[]) {
-	srand(time(nullptr));
-
-	if (argc < 2) {
+	if (argc < 3) {
 		clog << "Invalid arguments\n";
 		return 1;
 	}
@@ -154,17 +159,20 @@ int main(int argc, char *argv[]) {
 
 	TilesModel model(sample, tiles, tilesSize);
 	cin >> n >> m;
-	model.Generate(n, m);
+	bool regenerated = true;
 
-	sf::RenderWindow window(sf::VideoMode(tilesSize * m, tilesSize * n), "Demo");
+	sf::RenderWindow window(sf::VideoMode(tilesSize * m, tilesSize * n), "wfc");
+	window.setFramerateLimit(60);
 	while (window.isOpen()) {
 		sf::Event event;
 		while (window.pollEvent(event))
 		{
 			if (event.type == sf::Event::Closed)
 				window.close();
-			else if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::G) {
-				model.Generate(n, m);
+			else if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::G && regenerated) {
+				regenerated = false;
+				thread generator([&regenerated, &model, n, m](){ model.Generate(n, m); regenerated = true;});
+				generator.detach();
 			}
 		}
 		window.clear();

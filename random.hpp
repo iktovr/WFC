@@ -1,17 +1,19 @@
 #pragma once
 
-#include <cstdlib>
+#include <random>
 #include <vector>
 #include <algorithm>
 
 using namespace std;
 
 int Randrange(int b) {
-	return rand() % b;
+	static random_device r;
+	static mt19937 gen(r());
+	return gen() % b;
 }
 
 int Randrange(int a, int b) {
-	return rand() % b + a;
+	return Randrange(b) + a;
 }
 
 int Randchoice(const vector<int> &nums, const vector<double> &probs) {
