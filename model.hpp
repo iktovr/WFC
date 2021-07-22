@@ -28,9 +28,9 @@ protected:
 	
 	struct Backup {
 		vector<vector<Domain>> oldField;
-		int i; // Старая
-		int j; // Позиция
-		int n; // Старый выбор
+		int i;
+		int j;
+		int n;
 
 		Backup(vector<vector<Domain>> &field, int i, int j) : oldField(field), i(i), j(j), n(-1) {}
 	};
@@ -81,7 +81,6 @@ public:
 			
 			while (!q.empty()) {
 				auto [i, j] = q.front();
-				// cout << i << " " << j << '\n';
 				q.pop();
 				if (visited[i][j]) {
 					continue;
@@ -154,15 +153,6 @@ public:
 						break;
 					}
 				}
-
-				// for (vector<Domain> &row: field) {
-				// 	for (Domain &domain: row) {
-				// 		domain.Print(tiles);
-				// 		cout << " ";
-				// 	}
-				// 	cout << '\n';
-				// }
-				// sleep(1);
 			}
 
 			while(!visit.empty()) {
@@ -171,7 +161,7 @@ public:
 				visit.pop();
 			}
 
-			if (!changed) {			
+			if (!changed) {
 				entropy = Domain(count).Entropy(probs) + 1;
 				for (int i = 0; i < n; ++i) {
 					for (int j = 0; j < m; ++j) {
@@ -185,8 +175,6 @@ public:
 					}
 				}
 			}
-
-			// cout << "---\n";
 		}
 		return true;
 	}

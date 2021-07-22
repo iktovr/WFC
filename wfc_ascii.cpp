@@ -28,8 +28,6 @@ public:
 };
 
 int main(int , char* argv[]) {
-	srand(time(nullptr));
-
 	ifstream file(argv[1]);
 	int n, m, i = 0, j = 0;
 	file >> n >> m;

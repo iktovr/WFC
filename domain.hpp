@@ -98,13 +98,6 @@ struct Domain {
 
 	friend Domain operator&(const Domain &, const Domain &);
 
-	// void operator=(const vector<int> &idx) {
-	// 	Reset();
-	// 	for (int i: idx) {
-	// 		Set(i);
-	// 	}
-	// }
-
 	bool operator==(const Domain &other) {
 		return mask == other.mask;
 	}
