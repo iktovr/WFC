@@ -116,6 +116,16 @@ struct Domain {
 		return entropy;
 	}
 
+	static double MaxEntropy(const vector<double> &probs) {
+		double entropy = 0;
+		for (size_t i = 0; i < probs.size(); ++i) {
+			if (probs[i] > 0) {
+				entropy -= probs[i] * log(probs[i]);
+			}
+		}
+		return entropy;
+	}
+
 	void Print(vector<char> &tiles) {
 		for (size_t i = 0; i < Size(); ++i) {
 			if (mask[i]) {

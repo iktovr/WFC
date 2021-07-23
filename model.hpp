@@ -77,7 +77,7 @@ public:
 			backup.top().n = field[y][x].Choice(probs);
 			q.push({y, x});
 			visit.push({y, x});
-			double entropy = Domain(count).Entropy(probs) + 1;
+			double entropy = Domain::MaxEntropy(probs) + 1;
 			
 			while (!q.empty()) {
 				auto [i, j] = q.front();
@@ -162,7 +162,7 @@ public:
 			}
 
 			if (!changed) {
-				entropy = Domain(count).Entropy(probs) + 1;
+				entropy = Domain::MaxEntropy(probs) + 1;
 				for (int i = 0; i < n; ++i) {
 					for (int j = 0; j < m; ++j) {
 						double newEntropy = field[i][j].Entropy(probs);
