@@ -27,8 +27,18 @@ public:
 	}
 };
 
-int main(int , char* argv[]) {
+int main(int argc, char* argv[]) {
+	if (argc < 2) {
+		clog << "Missing config file\n";
+		return 1;
+	}
+
 	ifstream file(argv[1]);
+	if (!file.is_open()) {
+		std::cout << "Failed to open config file\n";
+		return 1;
+	}
+
 	int n, m, i = 0, j = 0;
 	file >> n >> m;
 	unordered_map<char, int> tilesId;
