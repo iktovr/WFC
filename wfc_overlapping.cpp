@@ -2,7 +2,6 @@
 #include <set>
 #include <string>
 #include <iomanip>
-#include <thread>
 
 #include "model.hpp"
 
@@ -96,9 +95,9 @@ public:
 		cout << tiles.size() << '\n';
 	}
 
-	bool Generate(int n, int m) {
+	void Init(int n, int m) override {
 		Result.create(m, n);
-		return Model::Generate(n, m);
+		Model::Init(n, m);
 	}
 
 	void Show() override {
@@ -134,10 +133,14 @@ public:
 	}
 };
 
-int main(int, char *argv[]) {
+int main(int argc, char *argv[]) {
+	if (argc < 2) {
+		clog << "Invalid arguments\n";
+		return 1;
+	}
+
 	sf::Image image;
 	if (!image.loadFromFile(string(argv[1]))) {
-		cout << "Error" << endl;
 		return 1;
 	}
 
@@ -145,6 +148,7 @@ int main(int, char *argv[]) {
 	cin >> N >> n >> m;
 
 	OverlappingModel model(image, N);
+	model.Init(n, m);
 
 	int scale = 10;
 	sf::Texture texture;
@@ -152,24 +156,44 @@ int main(int, char *argv[]) {
 	sf::Sprite sprite(texture);
 	sprite.setScale(scale, scale);
 
-	bool regenerated = true;
+	bool generated = false, autoStep = false, changed;
 
 	sf::RenderWindow window(sf::VideoMode(m * scale, n * scale), "wfc");
 	window.setFramerateLimit(60);
 	while (window.isOpen()) {
+		changed = false;
 		sf::Event event;
 		while (window.pollEvent(event)) {
 			if (event.type == sf::Event::Closed) {
 				window.close();
-			} else if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::G && regenerated) {
-				regenerated = false;
-				thread generator([&regenerated, &model, n, m](){ model.Generate(n, m); regenerated = true;});
-				generator.detach();
+
+			} else if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::G && !generated && !autoStep) {
+				generated = !model.Step();
+				changed = true;
+
+			} else if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::C) {
+				generated = false;
+				model.Clear();
+				changed = true;
+
+			} else if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::R) {
+				if (generated) {
+					generated = false;
+					model.Clear();
+				}
+				autoStep = true;
+				changed = true;
 			}
+		}
+
+		if (autoStep) {
+			autoStep = model.Step();
+			generated = !autoStep;
+			changed = true;
 		}
  
 		window.clear();
-		if (model.Result.getSize().x != 0) {
+		if (changed) {
 			model.Show();
 			texture.update(model.Result);
 		}

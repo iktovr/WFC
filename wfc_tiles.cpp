@@ -6,7 +6,6 @@
 #include <SFML/Graphics.hpp>
 #include <filesystem>
 #include <cstring>
-#include <thread>
 
 #include "model.hpp"
 
@@ -159,22 +158,38 @@ int main(int argc, char *argv[]) {
 
 	TilesModel model(sample, tiles, tilesSize);
 	cin >> n >> m;
-	bool regenerated = true;
+	model.Init(n, m);
+	bool generated = false, autoStep = false;
 
 	sf::RenderWindow window(sf::VideoMode(tilesSize * m, tilesSize * n), "wfc");
 	window.setFramerateLimit(60);
 	while (window.isOpen()) {
 		sf::Event event;
-		while (window.pollEvent(event))
-		{
-			if (event.type == sf::Event::Closed)
+		while (window.pollEvent(event)) {
+			if (event.type == sf::Event::Closed) {
 				window.close();
-			else if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::G && regenerated) {
-				regenerated = false;
-				thread generator([&regenerated, &model, n, m](){ model.Generate(n, m); regenerated = true;});
-				generator.detach();
+
+			} else if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::G && !generated && !autoStep) {
+				generated = !model.Step();
+
+			} else if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::C) {
+				generated = false;
+				model.Clear();
+
+			} else if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::R) {
+				if (generated) {
+					generated = false;
+					model.Clear();
+				}
+				autoStep = true;
 			}
 		}
+
+		if (autoStep) {
+			autoStep = model.Step();
+			generated = !autoStep;
+		}
+
 		window.clear();
 		model.Show(window);
 		window.display();
